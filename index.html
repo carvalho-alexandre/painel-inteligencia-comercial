@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Inteligência Comercial Varejista v2.0 - UFMS Digital</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #0284c7;
+            color: #0284c7;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-sky-900 text-white shadow-md">
+        <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">PAINEL DE INTELIGÊNCIA COMERCIAL VAREJISTA (v2.0)</h1>
+                <p class="text-xs text-sky-200">Projeto Integrador I — UFMS Digital | Alexandre Rolim de Carvalho</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="bg-sky-800 text-xs px-3 py-1 rounded-full border border-sky-700">Comunidade: Varejo Local</span>
+                <span class="bg-emerald-600 text-xs font-semibold px-3 py-1 rounded-full text-white shadow">Sistema Ativo</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu de Abas Interativas -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
+        <div class="max-w-[1600px] mx-auto px-4 flex overflow-x-auto space-x-6 text-sm">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-2 flex items-center gap-2 active-tab transition-all">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard Geral
+            </button>
+            <button onclick="switchTab('vendas')" id="tab-vendas" class="py-3 px-2 flex items-center gap-2 text-slate-600 hover:text-sky-600 transition-all">
+                <i data-lucide="shopping-cart" class="w-4 h-4"></i> 01. Registrar Vendas
+            </button>
+            <button onclick="switchTab('estoque')" id="tab-estoque" class="py-3 px-2 flex items-center gap-2 text-slate-600 hover:text-sky-600 transition-all">
+                <i data-lucide="box" class="w-4 h-4"></i> 02. Curva ABC e Alertas
+            </button>
+            <button onclick="switchTab('simulador')" id="tab-simulador" class="py-3 px-2 flex items-center gap-2 text-slate-600 hover:text-sky-600 transition-all">
+                <i data-lucide="calculator" class="w-4 h-4"></i> 03. Simulador de Margem
+            </button>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-[1600px] mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- ABA 1: DASHBOARD -->
+        <section id="sec-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-sky-600">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Faturamento Total</p>
+                    <h3 id="kpi-faturamento" class="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</h3>
+                    <p class="text-xs text-emerald-600 mt-1 flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3"></i> Recalculado em tempo real</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-600">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Total de Transações</p>
+                    <h3 id="kpi-transacoes" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    <p class="text-xs text-slate-500 mt-1">Vendas registradas no período</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-600">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Valor Médio por Venda (Ticket)</p>
+                    <h3 id="kpi-ticket" class="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</h3>
+                    <p class="text-xs text-slate-500 mt-1">Média por cliente</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-rose-600">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Alertas de Reposição</p>
+                    <h3 id="kpi-alertas" class="text-2xl font-bold text-rose-600 mt-1">0 Itens</h3>
+                    <p class="text-xs text-rose-500 mt-1 font-medium">Abaixo do estoque mínimo</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+                    <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i data-lucide="line-chart" class="w-4 h-4 text-sky-600"></i> Evolução das Transações (Faturamento por Lançamento)
+                    </h4>
+                    <div class="h-64"><canvas id="chartEvolucao"></canvas></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-sky-600"></i> Meios de Pagamento
+                    </h4>
+                    <div class="h-64"><canvas id="chartPagamento"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: REGISTRAR VENDAS -->
+        <section id="sec-vendas" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Formulário de Nova Venda ou Edição -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
+                    <h3 id="form-titulo" class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5 text-sky-600"></i> Lançar Nova Venda
+                    </h3>
+                    <form id="form-venda" onsubmit="salvarVenda(event)" class="space-y-4">
+                        <input type="hidden" id="venda-edit-id" value="">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Produto</label>
+                            <select id="venda-produto" onchange="atualizarPrecoInput()" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" required></select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Quantidade</label>
+                                <input type="number" id="venda-qtd" min="1" value="1" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Preço Unit. (R$)</label>
+                                <input type="number" id="venda-preco" step="0.01" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50" readonly>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Forma de Pagamento</label>
+                            <select id="venda-pagamento" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="PIX">PIX (Sem taxa)</option>
+                                <option value="Cartão Crédito">Cartão de Crédito</option>
+                                <option value="Cartão Débito">Cartão de Débito</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Canal de Venda</label>
+                            <select id="venda-canal" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="Loja Física">Loja Física</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="Instagram">Instagram</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" id="btn-submit" class="flex-grow bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 rounded-lg text-xs shadow transition-all flex items-center justify-center gap-1">
+                                <i data-lucide="check" class="w-4 h-4"></i> Confirmar Venda
+                            </button>
+                            <button type="button" id="btn-cancelar-edit" onclick="cancelarEdicao()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-2 rounded-lg text-xs transition-all">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabela de Vendas -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-3">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-sky-600"></i> Histórico Transacional de Vendas
+                    </h3>
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                <th class="p-2">ID</th>
+                                <th class="p-2">Data/Hora</th>
+                                <th class="p-2">Produto</th>
+                                <th class="p-2">Qtd</th>
+                                <th class="p-2">Total (R$)</th>
+                                <th class="p-2">Pagamento</th>
+                                <th class="p-2">Canal</th>
+                                <th class="p-2 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-vendas-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 3: CURVA ABC E ESTOQUE -->
+        <section id="sec-estoque" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Form do Produto (1 Coluna) -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm lg:col-span-1">
+                    <h3 id="form-prod-titulo" class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+                        <i data-lucide="package-plus" class="w-4 h-4 text-sky-600"></i> Cadastrar / Editar Produto
+                    </h3>
+                    <form id="form-produto" onsubmit="salvarProduto(event)" class="space-y-2.5 text-xs">
+                        <input type="hidden" id="prod-edit-id" value="">
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-0.5">Nome do Produto</label>
+                            <input type="text" id="prod-nome" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-0.5">Categoria</label>
+                            <select id="prod-categoria" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="Alimentos">Alimentos</option>
+                                <option value="Bebidas">Bebidas</option>
+                                <option value="Limpeza">Limpeza</option>
+                                <option value="Higiene">Higiene</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-medium text-slate-600 mb-0.5">Estoque Inic.</label>
+                                <input type="number" id="prod-estoque" min="0" value="10" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-600 mb-0.5">Estoque Mín.</label>
+                                <input type="number" id="prod-minimo" min="1" value="5" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-medium text-slate-600 mb-0.5">Custo (R$)</label>
+                                <input type="number" id="prod-custo" step="0.01" min="0" value="5.00" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block font-medium text-slate-600 mb-0.5">Preço Venda (R$)</label>
+                                <input type="number" id="prod-preco" step="0.01" min="0" value="10.00" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-600 mb-0.5">Curva ABC</label>
+                            <select id="prod-abc" class="w-full border border-slate-300 rounded-lg p-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="Cat. A">Categoria A (Top Faturamento)</option>
+                                <option value="Cat. B">Categoria B (Intermediário)</option>
+                                <option value="Cat. C">Categoria C (Giro Lento)</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button type="submit" id="btn-prod-submit" class="flex-grow bg-sky-600 hover:bg-sky-700 text-white font-medium py-1.5 rounded-lg shadow transition-all flex items-center justify-center gap-1">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar Produto
+                            </button>
+                            <button type="button" id="btn-prod-cancelar" onclick="cancelarEdicaoProduto()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-2 py-1.5 rounded-lg transition-all">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabela do Catálogo Expandida (Sincronizada) -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm lg:col-span-3">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                                <i data-lucide="boxes" class="w-4 h-4 text-sky-600"></i> Catálogo de Produtos e Curva ABC
+                            </h3>
+                            <p class="text-[11px] text-slate-500">Produtos cadastrados aqui sincronizam automaticamente com o Simulador de Margem</p>
+                        </div>
+                    </div>
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                <th class="p-2">Categoria</th>
+                                <th class="p-2">Produto</th>
+                                <th class="p-2 text-center">Estoque Atual</th>
+                                <th class="p-2 text-center">Estoque Mínimo</th>
+                                <th class="p-2 text-center">Status Alerta</th>
+                                <th class="p-2 text-center">Curva ABC</th>
+                                <th class="p-2 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-estoque-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: SIMULADOR DE MARGEM -->
+        <section id="sec-simulador" class="hidden space-y-6">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-5 h-5 text-sky-600"></i> Simulador de Precificação e Formação de Margem
+                    </h3>
+                    <p class="text-xs text-slate-500">Exibe automaticamente todos os produtos cadastrados. Edite o Custo e a Margem Desejada (%) para simular preços.</p>
+                </div>
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                            <th class="p-2.5">Produto</th>
+                            <th class="p-2.5 text-center">Custo Unit. R$ (Editável)</th>
+                            <th class="p-2.5 text-center">Margem Desejada (%)</th>
+                            <th class="p-2.5 text-center">Preço Sugerido (R$)</th>
+                            <th class="p-2.5 text-center">Preço Atual Prateleira (R$)</th>
+                            <th class="p-2.5 text-center">Diferença de Margem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-simulador-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-400 text-xs py-4 border-t border-slate-700 mt-8">
+        <div class="max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>© 2026 Alexandre Rolim de Carvalho — Projeto Integrador I (UFMS Digital)</p>
+            <p>Orientador: Prof. Dr. Amaury Antônio de Castro Junior</p>
+        </div>
+    </footer>
+
+    <!-- Script Principal JavaScript -->
+    <script>
+        let produtos = [
+            { id: 1, categoria: "Alimentos", nome: "Queijo Coalho 500g", estoque: 4, minimo: 10, custo: 16.00, preco: 28.00, margemPct: 40, abc: "Cat. A" },
+            { id: 2, categoria: "Alimentos", nome: "Café Tradicional 500g", estoque: 15, minimo: 8, custo: 11.50, preco: 18.50, margemPct: 35, abc: "Cat. A" },
+            { id: 3, categoria: "Alimentos", nome: "Biscoito Artesanal", estoque: 6, minimo: 12, custo: 4.80, preco: 8.50, margemPct: 40, abc: "Cat. A" },
+            { id: 4, categoria: "Alimentos", nome: "Chocolate Amargo 100g", estoque: 22, minimo: 10, custo: 4.50, preco: 7.50, margemPct: 35, abc: "Cat. B" },
+            { id: 5, categoria: "Bebidas", nome: "Refrigerante 2L", estoque: 18, minimo: 10, custo: 5.50, preco: 9.00, margemPct: 35, abc: "Cat. B" },
+            { id: 6, categoria: "Bebidas", nome: "Suco Natural 1L", estoque: 5, minimo: 10, custo: 7.00, preco: 12.00, margemPct: 40, abc: "Cat. B" },
+            { id: 7, categoria: "Bebidas", nome: "Água Mineral 500ml", estoque: 30, minimo: 15, custo: 1.20, preco: 3.00, margemPct: 50, abc: "Cat. C" },
+            { id: 8, categoria: "Limpeza", nome: "Desinfetante 2L", estoque: 8, minimo: 5, custo: 6.50, preco: 11.00, margemPct: 35, abc: "Cat. C" },
+            { id: 9, categoria: "Higiene", nome: "Sabonete Líquido 500ml", estoque: 12, minimo: 5, custo: 8.00, preco: 15.00, margemPct: 40, abc: "Cat. C" },
+            { id: 10, categoria: "Limpeza", nome: "Detergente Concentrado", estoque: 25, minimo: 10, custo: 3.20, preco: 6.00, margemPct: 40, abc: "Cat. C" }
+        ];
+
+        let vendas = [
+            { id: "TRX-1001", data: "01/10/2026 09:15", produto: "Café Tradicional 500g", qtd: 2, total: 37.00, pag: "PIX", canal: "Loja Física" },
+            { id: "TRX-1002", data: "01/10/2026 10:30", produto: "Suco Natural 1L", qtd: 3, total: 36.00, pag: "Cartão Crédito", canal: "Loja Física" },
+            { id: "TRX-1003", data: "01/10/2026 11:45", produto: "Biscoito Artesanal", qtd: 5, total: 42.50, pag: "PIX", canal: "WhatsApp" },
+            { id: "TRX-1004", data: "02/10/2026 14:10", produto: "Detergente Concentrado", qtd: 4, total: 24.00, pag: "Dinheiro", canal: "Loja Física" },
+            { id: "TRX-1005", data: "02/10/2026 15:20", produto: "Queijo Coalho 500g", qtd: 2, total: 56.00, pag: "PIX", canal: "Instagram" },
+            { id: "TRX-1006", data: "03/10/2026 09:50", produto: "Refrigerante 2L", qtd: 6, total: 54.00, pag: "Cartão Débito", canal: "Loja Física" },
+            { id: "TRX-1007", data: "03/10/2026 11:15", produto: "Café Tradicional 500g", qtd: 3, total: 55.50, pag: "PIX", canal: "Loja Física" },
+            { id: "TRX-1008", data: "04/10/2026 16:00", produto: "Sabonete Líquido 500ml", qtd: 2, total: 30.00, pag: "Cartão Crédito", canal: "WhatsApp" },
+            { id: "TRX-1009", data: "05/10/2026 10:05", produto: "Chocolate Amargo 100g", qtd: 10, total: 75.00, pag: "PIX", canal: "Loja Física" },
+            { id: "TRX-1010", data: "05/10/2026 13:40", produto: "Queijo Coalho 500g", qtd: 3, total: 84.00, pag: "Cartão Crédito", canal: "Loja Física" },
+            { id: "TRX-1011", data: "06/10/2026 09:20", produto: "Água Mineral 500ml", qtd: 12, total: 36.00, pag: "Dinheiro", canal: "Loja Física" },
+            { id: "TRX-1012", data: "06/10/2026 15:10", produto: "Café Tradicional 500g", qtd: 4, total: 74.00, pag: "PIX", canal: "WhatsApp" },
+            { id: "TRX-1013", data: "07/10/2026 11:30", produto: "Biscoito Artesanal", qtd: 8, total: 68.00, pag: "PIX", canal: "Instagram" },
+            { id: "TRX-1014", data: "07/10/2026 16:45", produto: "Desinfetante 2L", qtd: 3, total: 33.00, pag: "Cartão Débito", canal: "Loja Física" },
+            { id: "TRX-1015", data: "08/10/2026 10:15", produto: "Queijo Coalho 500g", qtd: 4, total: 112.00, pag: "PIX", canal: "Loja Física" }
+        ];
+
+        let chartEvolucao, chartPagamento;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            popularSelectProdutos();
+            renderizarTabelas();
+            inicializarGraficos();
+            atualizarDashboard();
+        });
+
+        function switchTab(tabName) {
+            ['dashboard', 'vendas', 'estoque', 'simulador'].forEach(t => {
+                document.getElementById(`sec-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('active-tab');
+                document.getElementById(`tab-${t}`).classList.add('text-slate-600');
+            });
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('active-tab');
+            document.getElementById(`tab-${tabName}`).classList.remove('text-slate-600');
+        }
+
+        function popularSelectProdutos() {
+            const select = document.getElementById("venda-produto");
+            select.innerHTML = "";
+            produtos.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.nome;
+                opt.innerText = `${p.nome} - R$ ${p.preco.toFixed(2)}`;
+                select.appendChild(opt);
+            });
+            atualizarPrecoInput();
+        }
+
+        function atualizarPrecoInput() {
+            const nomeProd = document.getElementById("venda-produto").value;
+            const prod = produtos.find(p => p.nome === nomeProd);
+            if(prod) document.getElementById("venda-preco").value = prod.preco.toFixed(2);
+        }
+
+        function salvarVenda(e) {
+            e.preventDefault();
+            const editId = document.getElementById("venda-edit-id").value;
+            const nomeProd = document.getElementById("venda-produto").value;
+            const qtd = parseInt(document.getElementById("venda-qtd").value);
+            const pag = document.getElementById("venda-pagamento").value;
+            const canal = document.getElementById("venda-canal").value;
+            const prod = produtos.find(p => p.nome === nomeProd);
+
+            const total = qtd * prod.preco;
+
+            if (editId) {
+                const vendaIndex = vendas.findIndex(v => v.id === editId);
+                if (vendaIndex !== -1) {
+                    const vendaAntiga = vendas[vendaIndex];
+                    const prodAntigo = produtos.find(p => p.nome === vendaAntiga.produto);
+                    if (prodAntigo) prodAntigo.estoque += vendaAntiga.qtd;
+
+                    prod.estoque = Math.max(0, prod.estoque - qtd);
+
+                    vendas[vendaIndex] = {
+                        ...vendaAntiga,
+                        produto: nomeProd,
+                        qtd: qtd,
+                        total: total,
+                        pag: pag,
+                        canal: canal
+                    };
+                }
+                cancelarEdicao();
+                alert(`Venda ${editId} atualizada com sucesso!`);
+            } else {
+                const novoId = `TRX-${1000 + vendas.length + 1}`;
+                const agora = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+                prod.estoque = Math.max(0, prod.estoque - qtd);
+                vendas.push({ id: novoId, data: agora, produto: nomeProd, qtd: qtd, total: total, pag: pag, canal: canal });
+                alert(`Venda ${novoId} registrada com sucesso no final do histórico!`);
+            }
+
+            renderizarTabelas();
+            atualizarDashboard();
+        }
+
+        function editarVenda(id) {
+            const venda = vendas.find(v => v.id === id);
+            if (!venda) return;
+
+            document.getElementById("venda-edit-id").value = venda.id;
+            document.getElementById("venda-produto").value = venda.produto;
+            document.getElementById("venda-qtd").value = venda.qtd;
+            document.getElementById("venda-pagamento").value = venda.pag;
+            document.getElementById("venda-canal").value = venda.canal;
+            atualizarPrecoInput();
+
+            document.getElementById("form-titulo").innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-amber-600"></i> Editar Venda ${venda.id}`;
+            document.getElementById("btn-submit").className = "flex-grow bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 rounded-lg text-xs shadow transition-all flex items-center justify-center gap-1";
+            document.getElementById("btn-submit").innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> Salvar`;
+            document.getElementById("btn-cancelar-edit").classList.remove("hidden");
+            lucide.createIcons();
+        }
+
+        function cancelarEdicao() {
+            document.getElementById("venda-edit-id").value = "";
+            document.getElementById("form-venda").reset();
+            document.getElementById("venda-qtd").value = 1;
+            atualizarPrecoInput();
+
+            document.getElementById("form-titulo").innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-sky-600"></i> Lançar Nova Venda`;
+            document.getElementById("btn-submit").className = "flex-grow bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 rounded-lg text-xs shadow transition-all flex items-center justify-center gap-1";
+            document.getElementById("btn-submit").innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Confirmar Venda`;
+            document.getElementById("btn-cancelar-edit").classList.add("hidden");
+            lucide.createIcons();
+        }
+
+        function removerVenda(id) {
+            if (!confirm(`Tem certeza que deseja excluir a venda ${id}? O valor e o estoque serão ajustados automaticamente.`)) return;
+
+            const vendaIndex = vendas.findIndex(v => v.id === id);
+            if (vendaIndex !== -1) {
+                const venda = vendas[vendaIndex];
+                const prod = produtos.find(p => p.nome === venda.produto);
+                if (prod) prod.estoque += venda.qtd;
+
+                vendas.splice(vendaIndex, 1);
+                renderizarTabelas();
+                atualizarDashboard();
+                alert(`Venda ${id} removida com sucesso.`);
+            }
+        }
+
+        // --- SALVAR PRODUTO (NOVO OU EDIÇÃO) COM SINCRONIZAÇÃO TOTAL ---
+        function salvarProduto(e) {
+            e.preventDefault();
+            const editId = document.getElementById("prod-edit-id").value;
+            const nome = document.getElementById("prod-nome").value.trim();
+            const categoria = document.getElementById("prod-categoria").value;
+            const estoque = parseInt(document.getElementById("prod-estoque").value) || 0;
+            const minimo = parseInt(document.getElementById("prod-minimo").value) || 1;
+            const custo = parseFloat(document.getElementById("prod-custo").value) || 0;
+            const preco = parseFloat(document.getElementById("prod-preco").value) || 0;
+            let abc = document.getElementById("prod-abc").value;
+            if (abc.includes("Categoria A")) abc = "Cat. A";
+            if (abc.includes("Categoria B")) abc = "Cat. B";
+            if (abc.includes("Categoria C")) abc = "Cat. C";
+
+            if (editId) {
+                const idx = produtos.findIndex(p => p.id === parseInt(editId));
+                if (idx !== -1) {
+                    const nomeAntigo = produtos[idx].nome;
+                    produtos[idx] = { 
+                        id: parseInt(editId), 
+                        categoria, 
+                        nome, 
+                        estoque, 
+                        minimo, 
+                        custo, 
+                        preco, 
+                        margemPct: produtos[idx].margemPct || 35, 
+                        abc 
+                    };
+                    
+                    if (nomeAntigo !== nome) {
+                        vendas.forEach(v => { if (v.produto === nomeAntigo) v.produto = nome; });
+                    }
+                }
+                cancelarEdicaoProduto();
+                alert(`Produto "${nome}" atualizado! Sincronizado com o Simulador de Margem.`);
+            } else {
+                const novoId = produtos.length > 0 ? Math.max(...produtos.map(p => p.id)) + 1 : 1;
+                produtos.push({ 
+                    id: novoId, 
+                    categoria, 
+                    nome, 
+                    estoque, 
+                    minimo, 
+                    custo, 
+                    preco, 
+                    margemPct: 35, 
+                    abc 
+                });
+                cancelarEdicaoProduto();
+                alert(`Novo produto "${nome}" cadastrado com sucesso! Já disponível no Simulador e no registro de vendas.`);
+            }
+
+            popularSelectProdutos();
+            renderizarTabelas();
+            atualizarDashboard();
+        }
+
+        function editarProduto(id) {
+            const p = produtos.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById("prod-edit-id").value = p.id;
+            document.getElementById("prod-nome").value = p.nome;
+            document.getElementById("prod-categoria").value = p.categoria;
+            document.getElementById("prod-estoque").value = p.estoque;
+            document.getElementById("prod-minimo").value = p.minimo;
+            document.getElementById("prod-custo").value = p.custo.toFixed(2);
+            document.getElementById("prod-preco").value = p.preco.toFixed(2);
+
+            document.getElementById("form-prod-titulo").innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 text-amber-600"></i> Editar Produto`;
+            document.getElementById("btn-prod-submit").className = "flex-grow bg-amber-600 hover:bg-amber-700 text-white font-medium py-1.5 rounded-lg shadow transition-all flex items-center justify-center gap-1";
+            document.getElementById("btn-prod-submit").innerHTML = `<i data-lucide="save" class="w-3.5 h-3.5"></i> Salvar`;
+            document.getElementById("btn-prod-cancelar").classList.remove("hidden");
+            lucide.createIcons();
+        }
+
+        function cancelarEdicaoProduto() {
+            document.getElementById("prod-edit-id").value = "";
+            document.getElementById("form-produto").reset();
+
+            document.getElementById("form-prod-titulo").innerHTML = `<i data-lucide="package-plus" class="w-4 h-4 text-sky-600"></i> Cadastrar / Editar Produto`;
+            document.getElementById("btn-prod-submit").className = "flex-grow bg-sky-600 hover:bg-sky-700 text-white font-medium py-1.5 rounded-lg shadow transition-all flex items-center justify-center gap-1";
+            document.getElementById("btn-prod-submit").innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar Produto`;
+            document.getElementById("btn-prod-cancelar").classList.add("hidden");
+            lucide.createIcons();
+        }
+
+        function removerProduto(id) {
+            const p = produtos.find(item => item.id === id);
+            if (!p) return;
+
+            if (!confirm(`Tem certeza que deseja excluir o produto "${p.nome}"? Ele também será removido do Simulador de Margem.`)) return;
+
+            produtos = produtos.filter(item => item.id !== id);
+            popularSelectProdutos();
+            renderizarTabelas();
+            atualizarDashboard();
+            alert(`Produto "${p.nome}" removido do catálogo e do simulador.`);
+        }
+
+        function atualizarEstoqueAtual(index, novoEstoque) {
+            produtos[index].estoque = parseInt(novoEstoque) || 0;
+            renderizarTabelas();
+            atualizarDashboard();
+        }
+
+        function atualizarCustoUnitario(index, novoCusto) {
+            produtos[index].custo = parseFloat(novoCusto) || 0;
+            renderizarTabelas();
+        }
+
+        function renderizarTabelas() {
+            // Tabela Vendas
+            const bodyVendas = document.getElementById("tbl-vendas-body");
+            bodyVendas.innerHTML = "";
+            vendas.forEach(v => {
+                bodyVendas.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 font-semibold text-sky-700">${v.id}</td>
+                        <td class="p-2">${v.data}</td>
+                        <td class="p-2 font-medium">${v.produto}</td>
+                        <td class="p-2">${v.qtd}</td>
+                        <td class="p-2 font-bold text-slate-800">R$ ${v.total.toFixed(2)}</td>
+                        <td class="p-2"><span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border text-[10px]">${v.pag}</span></td>
+                        <td class="p-2 text-slate-500">${v.canal}</td>
+                        <td class="p-2 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="editarVenda('${v.id}')" title="Editar Venda" class="p-1 hover:bg-amber-100 text-amber-700 rounded transition-colors">
+                                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="removerVenda('${v.id}')" title="Excluir Venda" class="p-1 hover:bg-rose-100 text-rose-700 rounded transition-colors">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Tabela Estoque / Curva ABC
+            const bodyEstoque = document.getElementById("tbl-estoque-body");
+            bodyEstoque.innerHTML = "";
+            produtos.forEach((p, idx) => {
+                let badgeAlerta = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold text-[10px]">✅ OK</span>`;
+                if(p.estoque < p.minimo) {
+                    badgeAlerta = `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold text-[10px] animate-pulse">🚨 CRÍTICO</span>`;
+                } else if(p.estoque === p.minimo) {
+                    badgeAlerta = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold text-[10px]">⚠️ ATENÇÃO</span>`;
+                }
+
+                bodyEstoque.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 text-slate-500">${p.categoria}</td>
+                        <td class="p-2 font-semibold text-slate-800">${p.nome}</td>
+                        <td class="p-2 text-center">
+                            <input type="number" min="0" value="${p.estoque}" onchange="atualizarEstoqueAtual(${idx}, this.value)" class="w-14 border border-slate-300 rounded p-0.5 text-center font-bold ${p.estoque < p.minimo ? 'text-rose-600 border-rose-400 bg-rose-50' : 'text-slate-800'}"> un
+                        </td>
+                        <td class="p-2 text-center text-slate-500">${p.minimo} un</td>
+                        <td class="p-2 text-center">${badgeAlerta}</td>
+                        <td class="p-2 text-center"><span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-[10px] font-semibold">${p.abc}</span></td>
+                        <td class="p-2 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="editarProduto(${p.id})" title="Editar Produto" class="p-1 hover:bg-amber-100 text-amber-700 rounded transition-colors">
+                                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="removerProduto(${p.id})" title="Excluir Produto" class="p-1 hover:bg-rose-100 text-rose-700 rounded transition-colors">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Tabela Simulador de Margem (Sincronizada em tempo real)
+            const bodySimulador = document.getElementById("tbl-simulador-body");
+            bodySimulador.innerHTML = "";
+            produtos.forEach((p, idx) => {
+                const precoSugerido = p.custo / (1 - (p.margemPct / 100));
+                const diff = ((p.preco - precoSugerido) / precoSugerido) * 100;
+                bodySimulador.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2.5 font-semibold text-slate-800">${p.nome}</td>
+                        <td class="p-2.5 text-center">
+                            R$ <input type="number" step="0.10" value="${p.custo.toFixed(2)}" onchange="atualizarCustoUnitario(${idx}, this.value)" class="w-16 border border-slate-300 rounded p-0.5 text-center font-bold text-slate-800">
+                        </td>
+                        <td class="p-2.5 text-center">
+                            <input type="number" value="${p.margemPct}" onchange="atualizarMargem(${idx}, this.value)" class="w-14 border border-slate-300 rounded p-0.5 text-center font-bold text-sky-700"> %
+                        </td>
+                        <td class="p-2.5 text-center font-bold text-emerald-700">R$ ${precoSugerido.toFixed(2)}</td>
+                        <td class="p-2.5 text-center">R$ ${p.preco.toFixed(2)}</td>
+                        <td class="p-2.5 text-center font-medium ${diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
+                            ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}% vs. Meta
+                        </td>
+                    </tr>
+                `;
+            });
+
+            lucide.createIcons();
+        }
+
+        function atualizarMargem(index, novaMargem) {
+            produtos[index].margemPct = parseFloat(novaMargem) || 0;
+            renderizarTabelas();
+        }
+
+        function atualizarDashboard() {
+            const faturamentoTotal = vendas.reduce((acc, v) => acc + v.total, 0);
+            const totalTransacoes = vendas.length;
+            const ticketMedio = totalTransacoes > 0 ? faturamentoTotal / totalTransacoes : 0;
+            const itensCriticos = produtos.filter(p => p.estoque < p.minimo).length;
+
+            document.getElementById("kpi-faturamento").innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+            document.getElementById("kpi-transacoes").innerText = totalTransacoes;
+            document.getElementById("kpi-ticket").innerText = `R$ ${ticketMedio.toFixed(2)}`;
+            document.getElementById("kpi-alertas").innerText = `${itensCriticos} Itens`;
+
+            atualizarGraficos();
+        }
+
+        function inicializarGraficos() {
+            const ctxEvolucao = document.getElementById('chartEvolucao').getContext('2d');
+            chartEvolucao = new Chart(ctxEvolucao, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Valor da Venda (R$)', data: [], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const ctxPagamento = document.getElementById('chartPagamento').getContext('2d');
+            chartPagamento = new Chart(ctxPagamento, {
+                type: 'doughnut',
+                data: { labels: ['PIX', 'Cartão Crédito', 'Cartão Débito', 'Dinheiro'], datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#10b981', '#0284c7', '#6366f1', '#f59e0b'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            atualizarGraficos();
+        }
+
+        function atualizarGraficos() {
+            if(!chartEvolucao || !chartPagamento) return;
+
+            const labelsVendas = vendas.map(v => v.id);
+            const dataVendas = vendas.map(v => v.total);
+            chartEvolucao.data.labels = labelsVendas;
+            chartEvolucao.data.datasets[0].data = dataVendas;
+            chartEvolucao.update();
+
+            const pix = vendas.filter(v => v.pag === "PIX").reduce((a, b) => a + b.total, 0);
+            const cc = vendas.filter(v => v.pag === "Cartão Crédito").reduce((a, b) => a + b.total, 0);
+            const cd = vendas.filter(v => v.pag === "Cartão Débito").reduce((a, b) => a + b.total, 0);
+            const din = vendas.filter(v => v.pag === "Dinheiro").reduce((a, b) => a + b.total, 0);
+
+            chartPagamento.data.datasets[0].data = [pix, cc, cd, din];
+            chartPagamento.update();
+        }
+    </script>
+</body>
+</html>
